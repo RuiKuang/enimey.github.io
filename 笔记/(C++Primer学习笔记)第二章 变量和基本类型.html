@@ -1,0 +1,51 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>(C++Primer学习笔记)第二章 变量和基本类型 - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2014-11-01T08:34:02.000Z" class="post__time">十一月 1, 2014</time><h1 class="post__title"><a href="/笔记/(C++Primer学习笔记)第二章 变量和基本类型.html">(C++Primer学习笔记)第二章 变量和基本类型</a></h1></header><div class="post__main echo"><hr>
+<ol>
+<li><p>当给一个指定类型的对象赋值超过其取值范围是会发生什么？<br>取决于这种类型是signed还是unsigned的：<br>如果是signed：由编译器决定实际赋的值，大多数的编译器和unsigned的处理方式是一样的。<br>如果是unsigned：编译器会将该值对unsigned类型的可能取值数目求模，然后取所得值。比如8位的unsigned char类型，其取值范围从0-255，如果赋值超过这个范围，编译器将会取该值对256求模后的值。<br>如果把一个负值赋值给一个unsigned变量会发生什么？<br>其结果是将该负数对该类型的取值个数求模后的值。所以，如果把 -1 赋给8位的 unsigned char，那么结果是 255，因为 255 是 -1 对 256 求模后的值。</p>
+</li>
+<li><p>复制初始化和直接初始化的区别？<br>int ival(1024)  //直接初始化<br>int ival = int(1024) //直接初始化<br>Int ival = 1024 //复制初始化<br>初始化不是赋值：初始化是指创建变量并直接给他赋初始值；而赋值是指擦除对象的当前值并用新值代替。<br>那么复制初始化和直接初始化到底有什么区别呢？<br>推荐<a href="http://blog.csdn.net/ljianhui/article/details/9245661" target="_blank" rel="external">这篇文章</a>。</p>
+</li>
+<li><p>C++函数声明和定义的原因和作用：<br>声明可以有多次，定义只能且必须有一次。声明只是告诉编译器一些信息，以协助编译器进行语法分析，并不会生成代码；而定义是告诉编译器生成一些代码。<br>举例：</p>
+<pre><code>定义：<span class="keyword">int</span> a；
+声明：<span class="keyword">extern</span> <span class="keyword">int</span> a;
+</code></pre><p>任何在多个文件中使用的变量都需要有与定义分离的声明。在这种情况下， 一个文件含有变量的定义，使用该变量的其他文件则包含该变量的声明（而不是 定义）。</p>
+</li>
+<li><p>关于枚举：<br>枚举的定义包括关键字 enum，其后是一个可选的枚举类型名，和一个用花 括号括起来、用逗号分开的枚举成员列表。</p>
+<pre><code><span class="regexp">//</span> input <span class="keyword">is</span> <span class="number">0</span>, output <span class="keyword">is</span> <span class="number">1</span>, <span class="keyword">and</span> append <span class="keyword">is</span> <span class="number">2</span>
+<span class="reserved">enum</span> open_modes {input, output, append};
+</code></pre><p>默认地，第一个枚举成员赋值为 0，后面的每个枚举成员赋的值比前面的大 1。</p>
+<pre><code><span class="class"><span class="keyword">enum</span> <span class="title">open_modes</span></span>{input=<span class="number">1</span>,output,append=<span class="number">2</span>};
+</code></pre><p>此时，input=1,output=2,append=2(枚举成员值可以是不唯一的)</p>
+</li>
+<li><p>struct和class的区别：<br>用 class 和 struct 关键字定义类的唯一差别在于默认访问 级别：默认情况下，struct 的成员为 public，而 class 的成 员为 private。</p>
+</li>
+<li><p>避免多重包含：<br>为了避免名字冲突，预处理器变量经常用全大写字母表示。<br>预处理器变量有两种状态：已定义或未定义。定义预处理器变量和检测其状 态所用的预处理器指示不同。#define 指示接受一个名字并定义该名字为预处理 器变量。#ifndef 指示检测指定的预处理器变量是否未定义。如果预处理器变量 未定义，那么跟在其后的所有指示都被处理，直到出现 #endif。</p>
+</li>
+</ol>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/C-Primer/" class="post__tag__link">C++Primer</a></li><li class="post__tag__item"><a href="/tags/复制初始化/" class="post__tag__link">复制初始化</a></li><li class="post__tag__item"><a href="/tags/直接初始化/" class="post__tag__link">直接初始化</a></li></ul><a href="/笔记/(C++Primer学习笔记)第二章 变量和基本类型.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/笔记/(C++Primer学习笔记)第二章 变量和基本类型.html" class="disqus-comment-count"></div></footer></article><div class="comments"><div id="disqus_thread"><noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript></div></div></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><a title="Previous" href="/笔记/(C++Primer学习笔记)第三章 标准库类型.html" class="page-menu__link icon-arrow-left"></a></li><li class="page-menu__item"><a title="Next" href="/wiki.html" class="page-menu__link icon-arrow-right"></a></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","embed");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

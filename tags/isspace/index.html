@@ -1,0 +1,130 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>isspace - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2014-11-01T08:44:02.000Z" class="post__time">十一月 1, 2014</time><h1 class="post__title"><a href="/笔记/(C++Primer学习笔记)第三章 标准库类型.html">(C++Primer学习笔记)第三章 标准库类型</a></h1></header><div class="post__main echo"><hr>
+<ol>
+<li><p>何时使用 const 迭代器的？又在何时使用 const_iterator？解释两者的区别？<br> const迭代器是迭代器常量，该迭代器本身的值不能修改，即该迭代器在定义时需要初始化，而且初始化之后，不能再指向其他元素。若需要指向固定元素的迭代器，则可以使用const迭代器。<br> const_iterator是一种迭代器类型，对这种类型的迭代器解引用会得到一个指向const对象的引用，即通过这种迭代器访问到的对象是常量。该对象不能修改，因此，const_iterator类型只能用于读取容器内的元素，不能修改元素的值。若只需遍历容器中的元素而无需修改它们，则可以使用const_iterator。</p>
+</li>
+<li><p>vector的下标操作不能添加元素：</p>
+<pre><code><span class="stl_container"><span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;</span> ivec;   <span class="comment">// empty vector</span>
+<span class="keyword">for</span> (<span class="stl_container"><span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;</span>::size_type ix = <span class="number">0</span>; ix != <span class="number">10</span>; ++ix)
+    ivec[ix] = ix; <span class="comment">// disaster: ivec has no elements</span>
+</code></pre><p> 此处ivec被定义为一个空的vector对象，ivec[0],ivec[1]..ivec[n]都是不存在的，无法进行这样的赋值，正确的写法是这样：</p>
+<pre><code><span class="keyword">for</span> (<span class="stl_container"><span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;</span>::size_type ix = <span class="number">0</span>; ix != <span class="number">10</span>; ++ix)
+    ivec.push_back(ix); <span class="comment">// ok: adds new element with value ix</span>
+</code></pre><p> <strong>注意：下标操作符只能对确知已存在的元素进行操作</strong></p>
+</li>
+<li><p>isspace函数处理中文字符串问题：<br> 先看下面代码：</p>
+<pre><code><span class="comment">#include "stdafx.h"</span>
+<span class="comment">#include &lt;iostream&gt;</span>
+<span class="comment">#include &lt;string&gt;</span>
+<span class="comment">#include &lt;cctype&gt;</span>
+<span class="keyword">using</span> namespace std;
+
+<span class="type">int</span> main()
+{
+    <span class="type">string</span> <span class="literal">result</span>;
+    //unsigned <span class="type">char</span> c;
+    <span class="type">char</span> c;
+    <span class="type">string</span> a = <span class="string">"你 好"</span>;
+    <span class="type">int</span> flag = <span class="number">0</span>;
+    //std::locale::global(std::locale(<span class="string">"Chinese_China.936"</span>));
+    <span class="keyword">for</span>(<span class="type">string</span>::size_type i = <span class="number">0</span>; i !=a.size(); i++)
+    {
+        c = a[i];
+        <span class="keyword">if</span>(isspace(c))
+        {
+            flag = <span class="number">1</span>;
+        }
+        <span class="keyword">else</span>
+        {
+            <span class="literal">result</span> += c;
+        }
+    }
+    <span class="keyword">if</span>(flag)
+    {
+        cout&lt;&lt;<span class="literal">result</span>&lt;&lt;endl;
+    }
+    <span class="keyword">else</span>
+    {
+        cout&lt;&lt;<span class="string">"error"</span>&lt;&lt;endl;
+        <span class="keyword">return</span> -<span class="number">1</span>;
+    }
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+</code></pre><p> Vs2010编译运行后会出错： (unsigned)(c + 1) &lt;= 256)，发现是isspace出错，于是跟踪到c运行库里看看：</p>
+<pre><code><span class="keyword">extern</span> __<span class="function"><span class="keyword">inline</span> <span class="title">int</span> <span class="params">(__cdecl <span class="built_in">isspace</span>)</span> <span class="params">(
+        <span class="keyword">int</span> c
+        )</span>
+</span>{
+    <span class="keyword">if</span> (__locale_changed == <span class="number">0</span>)
+    {
+        <span class="keyword">return</span> __fast_ch_check(c, _SPACE);
+    }
+    <span class="keyword">else</span>
+    {
+        <span class="keyword">return</span> (_isspace_l)(c, NULL);
+    }
+}
+</code></pre><p> 继续跟踪，__locale_changed的值为0，调用__fast_ch_check，继续下去来到这里：</p>
+<pre><code><span class="preprocessor">#<span class="keyword">if</span> defined (_DEBUG)</span>
+<span class="keyword">extern</span> <span class="string">"C"</span> <span class="keyword">int</span> __cdecl _chvalidator(
+        <span class="keyword">int</span> c,
+        <span class="keyword">int</span> mask
+        )
+{
+        _ASSERTE((<span class="keyword">unsigned</span>)(c + <span class="number">1</span>) &lt;= <span class="number">256</span>);
+        <span class="keyword">return</span> _chvalidator_l(NULL, c, mask);
+}
+</code></pre><p> 错误出现在这里：_ASSERTE((unsigned)(c + 1) &lt;= 256);仔细观察函数，它的两个参数c和mask都为int类型，然后汉字的gbk编码是把汉字用两个字节表示，其首字节对应0x81-0xFE。这里就会有个char类型到int类型的转换，在vc2010下，char默认为signed char，这样转换为int后，就会变成一个负数，最后在_ASSERTE又被强制转换成unsigned，此时就产生一个很大的数，错误就此产生。</p>
+<p> 解决方法：<br> 第一种：Char c 改为： unsigned char c；<br> 第二种：std::locale::global(std::locale(“”))；</p>
+<p> 第一种方法不做解释，我们看下第二种到底是什么意思：一样跟踪进去看下c运行库，实在太复杂，好不容易跟到这段（<strong>Microsoft Visual Studio 10.0\VC\crt\src\locale.cpp</strong>）：</p>
+<pre><code>_MRTIMP2_PURE <span class="built_in">locale</span> __CLRCALL_PURE_OR_CDECL <span class="built_in">locale</span><span class="tag">::global</span>(const <span class="built_in">locale</span><span class="subst">&amp;</span> loc)
+    {   <span class="comment">// change global locale</span>
+    <span class="built_in">locale</span> _Oldglobal;
+    _BEGIN_LOCK(_LOCK_LOCALE)
+        <span class="built_in">locale</span><span class="tag">::_Locimp</span> <span class="subst">*</span>_Ptr <span class="subst">=</span> _Getgloballocale();
+
+        <span class="keyword">if</span> (_Ptr <span class="subst">!=</span> loc<span class="built_in">.</span>_Ptr)
+            {   <span class="comment">// set new global locale</span>
+            _DELETE_CRT(_Ptr<span class="subst">-&gt;</span>_Decref());
+            _Setgloballocale(_Ptr <span class="subst">=</span> loc<span class="built_in">.</span>_Ptr);
+            _Ptr<span class="subst">-&gt;</span>_Incref();
+            category _Cmask <span class="subst">=</span> _Ptr<span class="subst">-&gt;</span>_Catmask <span class="subst">&amp;</span> <span class="literal">all</span>;
+            <span class="keyword">if</span> (_Cmask <span class="subst">==</span> <span class="literal">all</span>)
+                setlocale(LC_ALL, _Ptr<span class="subst">-&gt;</span>_Name<span class="built_in">.</span>_C_str());
+            <span class="keyword">else</span>
+                for (int catindex <span class="subst">=</span> <span class="number">0</span>; catindex <span class="subst">&lt;=</span> _X_MAX; <span class="subst">++</span>catindex)
+                    <span class="keyword">if</span> ((_CATMASK(catindex) <span class="subst">&amp;</span> _Cmask) <span class="subst">!=</span> <span class="number">0</span>)
+                        setlocale(_CAT_TO_LC(catindex), _Ptr<span class="subst">-&gt;</span>_Name<span class="built_in">.</span>_C_str());
+            }
+        <span class="keyword">return</span> (_Oldglobal);
+    _END_LOCK()
+    }
+</code></pre><p> 当传递参数为NULL时，会比较当前应用程序使用的locale和默认的locale是否一致，如果不一致，将会将默认的locale设置为新的locale。这里的默认locale就是：CodePage936。</p>
+</li>
+</ol>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/C-Primer/" class="post__tag__link">C++Primer</a></li><li class="post__tag__item"><a href="/tags/isspace/" class="post__tag__link">isspace</a></li></ul><a href="/笔记/(C++Primer学习笔记)第三章 标准库类型.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/笔记/(C++Primer学习笔记)第三章 标准库类型.html" class="disqus-comment-count"></div></footer></article></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><span title="Previous" class="page-menu__link icon-arrow-left page-menu__link--disabled"></span></li><li class="page-menu__item"><span title="Next" class="page-menu__link icon-arrow-right page-menu__link--disabled"></span></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","count");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

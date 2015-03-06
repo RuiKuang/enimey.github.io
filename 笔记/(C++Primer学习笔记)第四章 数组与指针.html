@@ -1,0 +1,42 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>(C++Primer学习笔记)第四章 数组与指针 - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2014-11-01T08:54:02.000Z" class="post__time">十一月 1, 2014</time><h1 class="post__title"><a href="/笔记/(C++Primer学习笔记)第四章 数组与指针.html">(C++Primer学习笔记)第四章 数组与指针</a></h1></header><div class="post__main echo"><hr>
+<ol>
+<li><p>指针的引入：<br> 建议：尽量避免使用指针和数组 指针和数组容易产生不可预料的错误。其中一部分是概念上的问题：指针用于低级操作，容易然生与繁琐细节相关的（book keeping）错误。其他错误则源于使用指针的语法规则，特别是声明指针语法。 许多有用的程序都可不使用数组或指针实现，现代C++程序采用vector类型和迭代器取代一般的数组、采用string类型取代C风格字符串。</p>
+</li>
+<li><p>指针和typedef：<br> 在 typedef（第 2.6 节）中使用指针往往会带来意外的结果。下面是一个<br>几乎所有人刚开始时都会答错的问题。假设给出以下语句：</p>
+<pre><code><span class="keyword">typedef</span> <span class="built_in">string</span> *pstring;
+<span class="keyword">const</span> pstring cstr;
+</code></pre><p> 请问 cstr 变量是什么类型？简单的回答是 const pstring 类型的指针。进一步问：const pstring指针所表示的真实类型是什么？很多人都认为真正的类型是：</p>
+<pre><code><span class="keyword">const</span> string *cstr; // wrong interpretation <span class="keyword">of</span> <span class="keyword">const</span> pstring cstr
+</code></pre><p> 也就是说，const pstring 是一种指针，指向 string 类型的 const对象，但这是错误的。<br> 错误的原因在于将 typedef 当做文本扩展了。声明 const pstring 时，const 修饰的是 pstring 的类型，这是一个指针。因此，该声明语句应该是把cstr 定义为指向 string 类型对象的 const 指针，这个定义等价于：</p>
+<pre><code><span class="comment">// cstr is a const pointer to string</span>
+<span class="built_in">string</span> *<span class="keyword">const</span> cstr; <span class="comment">// equivalent to const pstring cstr</span>
+</code></pre></li>
+</ol>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/C-Primer/" class="post__tag__link">C++Primer</a></li></ul><a href="/笔记/(C++Primer学习笔记)第四章 数组与指针.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/笔记/(C++Primer学习笔记)第四章 数组与指针.html" class="disqus-comment-count"></div></footer></article><div class="comments"><div id="disqus_thread"><noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript></div></div></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><a title="Previous" href="/笔记/dlsym与C++.html" class="page-menu__link icon-arrow-left"></a></li><li class="page-menu__item"><a title="Next" href="/笔记/(C++Primer学习笔记)第三章 标准库类型.html" class="page-menu__link icon-arrow-right"></a></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","embed");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

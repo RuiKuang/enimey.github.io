@@ -1,0 +1,35 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>SCTF - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2014-12-10T03:03:00.000Z" class="post__time">十二月 10, 2014</time><h1 class="post__title"><a href="/Android安全/SCTF上的一道Android题.html">SCTF上的一道Android题</a></h1></header><div class="post__main echo"><hr>
+<h2 id="0x1_背景">0x1 背景</h2><p>SCTF上的一个Android题，记录一下分析的结果。<br>题目描述：<br><img src="/img/Android安全/SCTF上的一道Android题/1.jpg" alt="1_png"></p>
+<hr>
+<h2 id="0x2_详情">0x2 详情</h2><ul>
+<li>Java层很简单，获取用户输入，然后调用native层的func函数，如果返回真则弹出FLAG。</li>
+<li>SO有反调试，在init段的_cxa_chk_fail函数中，调用了pthread_create函数创建了新线程，在新线程中进行了反调试检测（/proc/pid/wchan）,若检测到调试，则tempabc = “xctf”，m_y = 9;否则tempabc = “syc”，m_y = 6。而这两个变量都涉及到后面的算法部分，也就是说如果不知道这个反调试的地方，后面算法推出的FLAG始终是错误的。（巧妙之处就在于检测到调试器，并没有让程序直接退出，而是修改了程序算法的参数）</li>
+<li>算法没有用什么加密算法，就是异或、移位之类的，大概跟了下，不深究了。</li>
+</ul>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/Android安全/" class="post__tag__link">Android安全</a></li><li class="post__tag__item"><a href="/tags/SCTF/" class="post__tag__link">SCTF</a></li></ul><a href="/Android安全/SCTF上的一道Android题.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/Android安全/SCTF上的一道Android题.html" class="disqus-comment-count"></div></footer></article></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><span title="Previous" class="page-menu__link icon-arrow-left page-menu__link--disabled"></span></li><li class="page-menu__item"><span title="Next" class="page-menu__link icon-arrow-right page-menu__link--disabled"></span></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","count");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

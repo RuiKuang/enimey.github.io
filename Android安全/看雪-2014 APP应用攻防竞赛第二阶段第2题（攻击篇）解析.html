@@ -1,0 +1,38 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>看雪-2014 APP应用攻防竞赛第二阶段第2题（攻击篇）解析 - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2014-12-19T07:55:00.000Z" class="post__time">十二月 19, 2014</time><h1 class="post__title"><a href="/Android安全/看雪-2014 APP应用攻防竞赛第二阶段第2题（攻击篇）解析.html">看雪-2014 APP应用攻防竞赛第二阶段第2题（攻击篇）解析</a></h1></header><div class="post__main echo"><hr>
+<h2 id="0x0">0x0</h2><p>闲下来了，回过头来再看看这个题。</p>
+<h2 id="0x1">0x1</h2><p>链接：<a href="http://bbs.pediy.com/showthread.php?t=193824" target="_blank" rel="external">http://bbs.pediy.com/showthread.php?t=193824</a><br>平台：Android<br>类型：CrackMe</p>
+<h2 id="0x2">0x2</h2><p>我就简单记录下关于SO的脱壳部分，达到能使用IDA动态调试的目的，更多分析看这篇帖子吧：<a href="http://bbs.pediy.com/showthread.php?p=1328679。" target="_blank" rel="external">http://bbs.pediy.com/showthread.php?p=1328679。</a></p>
+<h2 id="0x3">0x3</h2><p>直接把libcrackme.so拖到IDA，IDA直接挂掉了，拖到010里，用ELF解析脚本跑了下，段解析错误。于是readelf -l之：<br><img src="/img/Android安全/看雪-2014 APP应用攻防竞赛第二阶段第2题（攻击篇）解析/1.png" alt="1_png"><br>奇怪的是，只有一个LOAD段，然后一个明显错误的NOTE段，基于NOTE段实际上不会被载入内存，所以直接将其全部清0：<br><img src="/img/Android安全/看雪-2014 APP应用攻防竞赛第二阶段第2题（攻击篇）解析/2.png" alt="2_png"><br>然后再拖到IDA里，恩，这次没出错了，不过显然关键代码都被加密了：<br><img src="/img/Android安全/看雪-2014 APP应用攻防竞赛第二阶段第2题（攻击篇）解析/3.png" alt="3_png"><br>恩，我用之前研究的SODUMP试了下，但是由于该SO的段表已经发生变化（只有一个LOAD）所以基于相对位置恢复出来的section都错了，不过应该还是基于INIT加壳的。那么还是用IDA将内存DUMP了下来，由于只有一个LOAD段，所以不用进行内存修正，拖到010结果elf头全为0，直接套用原来的头部，再把dynamic段的p_offset的修正一下，当然还得将NOTE段头全部清0，拖到IDA里，一片光明，至少可以静态分析了：<br><img src="/img/Android安全/看雪-2014 APP应用攻防竞赛第二阶段第2题（攻击篇）解析/4.png" alt="4_png"><br>接着将原APK中的libcrackme.so替换为处理过后的SO，签名，运行，结果崩溃了。回想了SO加载过后的流程，搞清了为什么崩溃：<br>Android Linker将SO加载进内存后，首先会依次执行INIT段、INIT_ARRAY段中的函数，而对于libcrackme.so，INIT段、INIT_ARRAY段中的函数执行的功能是进行解密操作，但是我们dump出的SO已经完成了解密，此时再调用INIT段、INIT_ARRAY段中的函数，就发生了不可预期的情况，导致崩溃。<br>那么知道了原因，解决办法就是不再执行解密函数。<br>具体方法有很多：</p>
+<ul>
+<li>以DEBUG模式启动APP，在linker的CallConstructors函数处下断，然后直接修改函数流程，直接返回。</li>
+<li>以DEBUG模式启动APP，在soinfo_link_image函数处下断，通过case DT_INIT，case DT_INIT_ARRAY,获得SO中d-&gt;d_tag的位置，直接修改其为任意未知类型。</li>
+</ul>
+<p>第一种需要每次调试都修改，第二种一劳永逸。这样终于可以用IDA动态调试。</p>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/Android安全/" class="post__tag__link">Android安全</a></li><li class="post__tag__item"><a href="/tags/crackme/" class="post__tag__link">crackme</a></li></ul><a href="/Android安全/看雪-2014 APP应用攻防竞赛第二阶段第2题（攻击篇）解析.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/Android安全/看雪-2014 APP应用攻防竞赛第二阶段第2题（攻击篇）解析.html" class="disqus-comment-count"></div></footer></article><div class="comments"><div id="disqus_thread"><noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript></div></div></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><a title="Previous" href="/Android安全/2015移动安全挑战赛-第1题.html" class="page-menu__link icon-arrow-left"></a></li><li class="page-menu__item"><a title="Next" href="/Android安全/基于init_array加密的SO的脱壳.html" class="page-menu__link icon-arrow-right"></a></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","embed");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

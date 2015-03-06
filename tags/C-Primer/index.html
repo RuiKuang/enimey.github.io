@@ -1,0 +1,167 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>C++Primer - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2014-11-01T08:54:02.000Z" class="post__time">十一月 1, 2014</time><h1 class="post__title"><a href="/笔记/(C++Primer学习笔记)第四章 数组与指针.html">(C++Primer学习笔记)第四章 数组与指针</a></h1></header><div class="post__main echo"><hr>
+<ol>
+<li><p>指针的引入：<br> 建议：尽量避免使用指针和数组 指针和数组容易产生不可预料的错误。其中一部分是概念上的问题：指针用于低级操作，容易然生与繁琐细节相关的（book keeping）错误。其他错误则源于使用指针的语法规则，特别是声明指针语法。 许多有用的程序都可不使用数组或指针实现，现代C++程序采用vector类型和迭代器取代一般的数组、采用string类型取代C风格字符串。</p>
+</li>
+<li><p>指针和typedef：<br> 在 typedef（第 2.6 节）中使用指针往往会带来意外的结果。下面是一个<br>几乎所有人刚开始时都会答错的问题。假设给出以下语句：</p>
+<pre><code><span class="keyword">typedef</span> <span class="built_in">string</span> *pstring;
+<span class="keyword">const</span> pstring cstr;
+</code></pre><p> 请问 cstr 变量是什么类型？简单的回答是 const pstring 类型的指针。进一步问：const pstring指针所表示的真实类型是什么？很多人都认为真正的类型是：</p>
+<pre><code><span class="keyword">const</span> string *cstr; // wrong interpretation <span class="keyword">of</span> <span class="keyword">const</span> pstring cstr
+</code></pre><p> 也就是说，const pstring 是一种指针，指向 string 类型的 const对象，但这是错误的。<br> 错误的原因在于将 typedef 当做文本扩展了。声明 const pstring 时，const 修饰的是 pstring 的类型，这是一个指针。因此，该声明语句应该是把cstr 定义为指向 string 类型对象的 const 指针，这个定义等价于：</p>
+<pre><code><span class="comment">// cstr is a const pointer to string</span>
+<span class="built_in">string</span> *<span class="keyword">const</span> cstr; <span class="comment">// equivalent to const pstring cstr</span>
+</code></pre></li>
+</ol>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/C-Primer/" class="post__tag__link">C++Primer</a></li></ul><a href="/笔记/(C++Primer学习笔记)第四章 数组与指针.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/笔记/(C++Primer学习笔记)第四章 数组与指针.html" class="disqus-comment-count"></div></footer></article><article class="post"><header class="post__head"><time datetime="2014-11-01T08:44:02.000Z" class="post__time">十一月 1, 2014</time><h1 class="post__title"><a href="/笔记/(C++Primer学习笔记)第三章 标准库类型.html">(C++Primer学习笔记)第三章 标准库类型</a></h1></header><div class="post__main echo"><hr>
+<ol>
+<li><p>何时使用 const 迭代器的？又在何时使用 const_iterator？解释两者的区别？<br> const迭代器是迭代器常量，该迭代器本身的值不能修改，即该迭代器在定义时需要初始化，而且初始化之后，不能再指向其他元素。若需要指向固定元素的迭代器，则可以使用const迭代器。<br> const_iterator是一种迭代器类型，对这种类型的迭代器解引用会得到一个指向const对象的引用，即通过这种迭代器访问到的对象是常量。该对象不能修改，因此，const_iterator类型只能用于读取容器内的元素，不能修改元素的值。若只需遍历容器中的元素而无需修改它们，则可以使用const_iterator。</p>
+</li>
+<li><p>vector的下标操作不能添加元素：</p>
+<pre><code><span class="stl_container"><span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;</span> ivec;   <span class="comment">// empty vector</span>
+<span class="keyword">for</span> (<span class="stl_container"><span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;</span>::size_type ix = <span class="number">0</span>; ix != <span class="number">10</span>; ++ix)
+    ivec[ix] = ix; <span class="comment">// disaster: ivec has no elements</span>
+</code></pre><p> 此处ivec被定义为一个空的vector对象，ivec[0],ivec[1]..ivec[n]都是不存在的，无法进行这样的赋值，正确的写法是这样：</p>
+<pre><code><span class="keyword">for</span> (<span class="stl_container"><span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;</span>::size_type ix = <span class="number">0</span>; ix != <span class="number">10</span>; ++ix)
+    ivec.push_back(ix); <span class="comment">// ok: adds new element with value ix</span>
+</code></pre><p> <strong>注意：下标操作符只能对确知已存在的元素进行操作</strong></p>
+</li>
+<li><p>isspace函数处理中文字符串问题：<br> 先看下面代码：</p>
+<pre><code><span class="comment">#include "stdafx.h"</span>
+<span class="comment">#include &lt;iostream&gt;</span>
+<span class="comment">#include &lt;string&gt;</span>
+<span class="comment">#include &lt;cctype&gt;</span>
+<span class="keyword">using</span> namespace std;
+
+<span class="type">int</span> main()
+{
+    <span class="type">string</span> <span class="literal">result</span>;
+    //unsigned <span class="type">char</span> c;
+    <span class="type">char</span> c;
+    <span class="type">string</span> a = <span class="string">"你 好"</span>;
+    <span class="type">int</span> flag = <span class="number">0</span>;
+    //std::locale::global(std::locale(<span class="string">"Chinese_China.936"</span>));
+    <span class="keyword">for</span>(<span class="type">string</span>::size_type i = <span class="number">0</span>; i !=a.size(); i++)
+    {
+        c = a[i];
+        <span class="keyword">if</span>(isspace(c))
+        {
+            flag = <span class="number">1</span>;
+        }
+        <span class="keyword">else</span>
+        {
+            <span class="literal">result</span> += c;
+        }
+    }
+    <span class="keyword">if</span>(flag)
+    {
+        cout&lt;&lt;<span class="literal">result</span>&lt;&lt;endl;
+    }
+    <span class="keyword">else</span>
+    {
+        cout&lt;&lt;<span class="string">"error"</span>&lt;&lt;endl;
+        <span class="keyword">return</span> -<span class="number">1</span>;
+    }
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+</code></pre><p> Vs2010编译运行后会出错： (unsigned)(c + 1) &lt;= 256)，发现是isspace出错，于是跟踪到c运行库里看看：</p>
+<pre><code><span class="keyword">extern</span> __<span class="function"><span class="keyword">inline</span> <span class="title">int</span> <span class="params">(__cdecl <span class="built_in">isspace</span>)</span> <span class="params">(
+        <span class="keyword">int</span> c
+        )</span>
+</span>{
+    <span class="keyword">if</span> (__locale_changed == <span class="number">0</span>)
+    {
+        <span class="keyword">return</span> __fast_ch_check(c, _SPACE);
+    }
+    <span class="keyword">else</span>
+    {
+        <span class="keyword">return</span> (_isspace_l)(c, NULL);
+    }
+}
+</code></pre><p> 继续跟踪，__locale_changed的值为0，调用__fast_ch_check，继续下去来到这里：</p>
+<pre><code><span class="preprocessor">#<span class="keyword">if</span> defined (_DEBUG)</span>
+<span class="keyword">extern</span> <span class="string">"C"</span> <span class="keyword">int</span> __cdecl _chvalidator(
+        <span class="keyword">int</span> c,
+        <span class="keyword">int</span> mask
+        )
+{
+        _ASSERTE((<span class="keyword">unsigned</span>)(c + <span class="number">1</span>) &lt;= <span class="number">256</span>);
+        <span class="keyword">return</span> _chvalidator_l(NULL, c, mask);
+}
+</code></pre><p> 错误出现在这里：_ASSERTE((unsigned)(c + 1) &lt;= 256);仔细观察函数，它的两个参数c和mask都为int类型，然后汉字的gbk编码是把汉字用两个字节表示，其首字节对应0x81-0xFE。这里就会有个char类型到int类型的转换，在vc2010下，char默认为signed char，这样转换为int后，就会变成一个负数，最后在_ASSERTE又被强制转换成unsigned，此时就产生一个很大的数，错误就此产生。</p>
+<p> 解决方法：<br> 第一种：Char c 改为： unsigned char c；<br> 第二种：std::locale::global(std::locale(“”))；</p>
+<p> 第一种方法不做解释，我们看下第二种到底是什么意思：一样跟踪进去看下c运行库，实在太复杂，好不容易跟到这段（<strong>Microsoft Visual Studio 10.0\VC\crt\src\locale.cpp</strong>）：</p>
+<pre><code>_MRTIMP2_PURE <span class="built_in">locale</span> __CLRCALL_PURE_OR_CDECL <span class="built_in">locale</span><span class="tag">::global</span>(const <span class="built_in">locale</span><span class="subst">&amp;</span> loc)
+    {   <span class="comment">// change global locale</span>
+    <span class="built_in">locale</span> _Oldglobal;
+    _BEGIN_LOCK(_LOCK_LOCALE)
+        <span class="built_in">locale</span><span class="tag">::_Locimp</span> <span class="subst">*</span>_Ptr <span class="subst">=</span> _Getgloballocale();
+
+        <span class="keyword">if</span> (_Ptr <span class="subst">!=</span> loc<span class="built_in">.</span>_Ptr)
+            {   <span class="comment">// set new global locale</span>
+            _DELETE_CRT(_Ptr<span class="subst">-&gt;</span>_Decref());
+            _Setgloballocale(_Ptr <span class="subst">=</span> loc<span class="built_in">.</span>_Ptr);
+            _Ptr<span class="subst">-&gt;</span>_Incref();
+            category _Cmask <span class="subst">=</span> _Ptr<span class="subst">-&gt;</span>_Catmask <span class="subst">&amp;</span> <span class="literal">all</span>;
+            <span class="keyword">if</span> (_Cmask <span class="subst">==</span> <span class="literal">all</span>)
+                setlocale(LC_ALL, _Ptr<span class="subst">-&gt;</span>_Name<span class="built_in">.</span>_C_str());
+            <span class="keyword">else</span>
+                for (int catindex <span class="subst">=</span> <span class="number">0</span>; catindex <span class="subst">&lt;=</span> _X_MAX; <span class="subst">++</span>catindex)
+                    <span class="keyword">if</span> ((_CATMASK(catindex) <span class="subst">&amp;</span> _Cmask) <span class="subst">!=</span> <span class="number">0</span>)
+                        setlocale(_CAT_TO_LC(catindex), _Ptr<span class="subst">-&gt;</span>_Name<span class="built_in">.</span>_C_str());
+            }
+        <span class="keyword">return</span> (_Oldglobal);
+    _END_LOCK()
+    }
+</code></pre><p> 当传递参数为NULL时，会比较当前应用程序使用的locale和默认的locale是否一致，如果不一致，将会将默认的locale设置为新的locale。这里的默认locale就是：CodePage936。</p>
+</li>
+</ol>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/C-Primer/" class="post__tag__link">C++Primer</a></li><li class="post__tag__item"><a href="/tags/isspace/" class="post__tag__link">isspace</a></li></ul><a href="/笔记/(C++Primer学习笔记)第三章 标准库类型.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/笔记/(C++Primer学习笔记)第三章 标准库类型.html" class="disqus-comment-count"></div></footer></article><article class="post"><header class="post__head"><time datetime="2014-11-01T08:34:02.000Z" class="post__time">十一月 1, 2014</time><h1 class="post__title"><a href="/笔记/(C++Primer学习笔记)第二章 变量和基本类型.html">(C++Primer学习笔记)第二章 变量和基本类型</a></h1></header><div class="post__main echo"><hr>
+<ol>
+<li><p>当给一个指定类型的对象赋值超过其取值范围是会发生什么？<br>取决于这种类型是signed还是unsigned的：<br>如果是signed：由编译器决定实际赋的值，大多数的编译器和unsigned的处理方式是一样的。<br>如果是unsigned：编译器会将该值对unsigned类型的可能取值数目求模，然后取所得值。比如8位的unsigned char类型，其取值范围从0-255，如果赋值超过这个范围，编译器将会取该值对256求模后的值。<br>如果把一个负值赋值给一个unsigned变量会发生什么？<br>其结果是将该负数对该类型的取值个数求模后的值。所以，如果把 -1 赋给8位的 unsigned char，那么结果是 255，因为 255 是 -1 对 256 求模后的值。</p>
+</li>
+<li><p>复制初始化和直接初始化的区别？<br>int ival(1024)  //直接初始化<br>int ival = int(1024) //直接初始化<br>Int ival = 1024 //复制初始化<br>初始化不是赋值：初始化是指创建变量并直接给他赋初始值；而赋值是指擦除对象的当前值并用新值代替。<br>那么复制初始化和直接初始化到底有什么区别呢？<br>推荐<a href="http://blog.csdn.net/ljianhui/article/details/9245661" target="_blank" rel="external">这篇文章</a>。</p>
+</li>
+<li><p>C++函数声明和定义的原因和作用：<br>声明可以有多次，定义只能且必须有一次。声明只是告诉编译器一些信息，以协助编译器进行语法分析，并不会生成代码；而定义是告诉编译器生成一些代码。<br>举例：</p>
+<pre><code>定义：<span class="keyword">int</span> a；
+声明：<span class="keyword">extern</span> <span class="keyword">int</span> a;
+</code></pre><p>任何在多个文件中使用的变量都需要有与定义分离的声明。在这种情况下， 一个文件含有变量的定义，使用该变量的其他文件则包含该变量的声明（而不是 定义）。</p>
+</li>
+<li><p>关于枚举：<br>枚举的定义包括关键字 enum，其后是一个可选的枚举类型名，和一个用花 括号括起来、用逗号分开的枚举成员列表。</p>
+<pre><code><span class="regexp">//</span> input <span class="keyword">is</span> <span class="number">0</span>, output <span class="keyword">is</span> <span class="number">1</span>, <span class="keyword">and</span> append <span class="keyword">is</span> <span class="number">2</span>
+<span class="reserved">enum</span> open_modes {input, output, append};
+</code></pre><p>默认地，第一个枚举成员赋值为 0，后面的每个枚举成员赋的值比前面的大 1。</p>
+<pre><code><span class="class"><span class="keyword">enum</span> <span class="title">open_modes</span></span>{input=<span class="number">1</span>,output,append=<span class="number">2</span>};
+</code></pre><p>此时，input=1,output=2,append=2(枚举成员值可以是不唯一的)</p>
+</li>
+<li><p>struct和class的区别：<br>用 class 和 struct 关键字定义类的唯一差别在于默认访问 级别：默认情况下，struct 的成员为 public，而 class 的成 员为 private。</p>
+</li>
+<li><p>避免多重包含：<br>为了避免名字冲突，预处理器变量经常用全大写字母表示。<br>预处理器变量有两种状态：已定义或未定义。定义预处理器变量和检测其状 态所用的预处理器指示不同。#define 指示接受一个名字并定义该名字为预处理 器变量。#ifndef 指示检测指定的预处理器变量是否未定义。如果预处理器变量 未定义，那么跟在其后的所有指示都被处理，直到出现 #endif。</p>
+</li>
+</ol>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/C-Primer/" class="post__tag__link">C++Primer</a></li><li class="post__tag__item"><a href="/tags/复制初始化/" class="post__tag__link">复制初始化</a></li><li class="post__tag__item"><a href="/tags/直接初始化/" class="post__tag__link">直接初始化</a></li></ul><a href="/笔记/(C++Primer学习笔记)第二章 变量和基本类型.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/笔记/(C++Primer学习笔记)第二章 变量和基本类型.html" class="disqus-comment-count"></div></footer></article></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><span title="Previous" class="page-menu__link icon-arrow-left page-menu__link--disabled"></span></li><li class="page-menu__item"><span title="Next" class="page-menu__link icon-arrow-right page-menu__link--disabled"></span></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","count");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

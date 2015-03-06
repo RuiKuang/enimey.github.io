@@ -1,0 +1,48 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>2015移动安全挑战赛-第2题 - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2015-01-27T01:34:02.000Z" class="post__time">一月 27, 2015</time><h1 class="post__title"><a href="/Android安全/2015移动安全挑战赛-第2题.html">2015移动安全挑战赛-第2题</a></h1></header><div class="post__main echo"><h2 id="0x0">0x0</h2><p>这次算是正式的参加了一次线上的比赛，所以还是记录下来。</p>
+<h2 id="0x1">0x1</h2><p>链接：<a href="http://msc.pediy.com/timu.htm" target="_blank" rel="external">http://msc.pediy.com/timu.htm</a><br>平台：Android<br>类型：CrackMe</p>
+<h2 id="0x2">0x2</h2><p>Java层什么都没做，直接把输入传给了SO中的函数securityCheck进行处理，IDA attach后发现程序退出了，好吧，肯定是反调试了。这里顺便说一下检测调试的手段：</p>
+<ul>
+<li>读取了/proc/<pid>/status文件里面的状态和TracerId</pid></li>
+<li>调用ptrace(PTRACE_TRACEME,PTRACE_ATTACH)比如子进程attach父进程，子线程traceme自己等等</li>
+<li>其他奇淫技巧</li>
+</ul>
+<p>这道题是在JNI_OnLoad函数中进行了反调试，那么就需要在APK运行前进行调试，再次记录一下调试方法吧：</p>
+<ul>
+<li>准备好调试环境（IDA、adb等）</li>
+<li>adb shell</li>
+<li>am start -D -n com.yaotong.crackme/.MainActivity</li>
+<li>使用IDA附加上该APK进程，设置加载SO时端下来，在dlopen下断点（在这里下断可以调试INIT和INIT_ARRAY的函数）</li>
+<li>jdb -connect com.sun.jdi.SocketAttach:hostname=127.0.0.1,port=8700</li>
+<li>使IDA continue</li>
+<li>此时IDA应该就会断下来，我们再在libcrackme.so的JNI_OnLoad下断点</li>
+<li>单步跟踪结合IDA静态分析和F5，并在fgets处下断点，SO是通过读取/proc/pid/status文件中的Tracepid字段来判断是否有调试，如果检测到调试程序将会退出。最终，我用patch跳转指令（IDA的Edit菜单里Patch program-&gt;Change byte可以修改指令的机器码，可以改成0 0 0 0）掉了反调试：<br><img src="/img/Android安全/2015移动安全挑战赛-第2题/1.png" alt="1_png"></li>
+</ul>
+<p>过掉反调试接下来就easy了，在Java_com_yaotong_crackme_MainActivity_securityCheck下断点，让IDA continue，最终验证逻辑就是一个简单的字符串比较：<br><img src="/img/Android安全/2015移动安全挑战赛-第2题/2.png" alt="2_png"><br>最终密码为：aiyou,bucuoo</p>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/Android安全/" class="post__tag__link">Android安全</a></li><li class="post__tag__item"><a href="/tags/crackme/" class="post__tag__link">crackme</a></li></ul><a href="/Android安全/2015移动安全挑战赛-第2题.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/Android安全/2015移动安全挑战赛-第2题.html" class="disqus-comment-count"></div></footer></article><div class="comments"><div id="disqus_thread"><noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript></div></div></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><a title="Previous" href="/Android安全/2015移动安全挑战赛-第3题.html" class="page-menu__link icon-arrow-left"></a></li><li class="page-menu__item"><a title="Next" href="/Android安全/2015移动安全挑战赛-第1题.html" class="page-menu__link icon-arrow-right"></a></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","embed");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

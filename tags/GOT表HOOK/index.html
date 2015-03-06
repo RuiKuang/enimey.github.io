@@ -1,0 +1,157 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>GOT表HOOK - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2014-11-02T08:24:02.000Z" class="post__time">十一月 2, 2014</time><h1 class="post__title"><a href="/Android安全/Android GOT表HOOK技术.html">Android GOT表HOOK技术</a></h1></header><div class="post__main echo"><hr>
+<h2 id="0x1_原理">0x1 原理</h2><p>在完成对目标进程的动态库注入后，我们通常还需要改变目标进程的执行流程、替换原函数从而达到自己的目的。而所谓的Hook是指改变待Hook函数的入口地址，转而指向我们的函数，变更原函数功能。</p>
+<h2 id="0x2_流程">0x2 流程</h2><p>GOT表Hook过程如下：</p>
+<ol>
+<li><strong>注入SO(libhook.so)成功后，调用dlsym函数，获取SO中函数handle_hook的地址</strong>；</li>
+<li>0x02 <strong>调用函数handle_hook，完成Native Hook</strong>；</li>
+</ol>
+<h2 id="0x3_实现">0x3 实现</h2><ol>
+<li><strong>注入SO(libhook.so)成功后，调用dlsym函数，获取SO中函数handle_hook的地址</strong>：<br> 首先调用dlopen(“libhook.so”, “RTLD_NOW”)，返回一个SO句柄handle，调用dlsym(handle, “handle_hook”),返回libhook.so中函数handle_hook的地址handle_hook_addr。</li>
+<li><strong>调用函数handle_hook，完成GOT表Hook</strong>：<br> 通过解析SO文件，将待Hook函数在got表的地址替换为自己函数的入口地址，这样目标进程每次调用待Hook函数时，实际上是执行了我们自己的函数。（ps：事实上没有说的这么简单，需要对elf文件格式、动态库装载原理有深入理解）</li>
+</ol>
+<h2 id="0x4_关键">0x4 关键</h2><ol>
+<li><strong>elf中重要的三个表</strong>：<br> 字符串表：包含以空字符结尾的字符序列，使用这些字符来描绘符号和节名；<br> 符号表：保存了一个程序在定位和重定位时需要的定义和引用的信息；<br> 重定位表：保存了需要重定位的符号的信息；<br> （ps：之前所说解析SO文件，其实主要目的就是获得这三个表的信息）</li>
+<li><p><strong>如何找到待Hook函数在got表的地址以及自己函数的入口地址</strong>：</p>
+<ul>
+<li>读取ELF文件头（ELF文件头起始于 ELF 文件开始的第一字节），取出：<br>节头表的文件偏移（shdr_base），获取节头表在文件中的位置；<br>节头表的项数（shnum），获取节头表的项数；<br>与节名称字符串表关联的项的节头表索引（shstr_base），并将其缓存起来（shstr）；<pre><code><span class="keyword">int</span> fd;
+fd = open(module_path, O_RDONLY);
+Elf32_Ehdr *ehdr = (Elf32_Ehdr *)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(Elf32_Ehdr));
+read(fd, ehdr, <span class="keyword">sizeof</span>(Elf32_Ehdr)) != <span class="keyword">sizeof</span>(Elf32_Ehdr);
+<span class="keyword">uint32_t</span> shdr_base = ehdr -&gt; e_shoff;
+<span class="keyword">uint16_t</span> shnum = ehdr -&gt; e_shnum;
+<span class="keyword">uint32_t</span> shstr_base = shdr_base + ehdr -&gt; e_shstrndx * <span class="keyword">sizeof</span>(Elf32_Shdr);
+Elf32_Shdr *shstr = (Elf32_Shdr *)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(Elf32_Shdr));
+lseek(fd, shstr_base, SEEK_SET);
+read(fd, shstr, <span class="keyword">sizeof</span>(Elf32_Shdr));
+</code></pre></li>
+<li><p>读取节头表索引，取出：<br>节的大小（sh_size）、节的名称（sh_name）；<br>遍历节名，分别将节名为.dynsym、.dynstr、.got、.rel.plt的节缓存起来（dynsym_shdr、dynstr_shdr、got_shdr、relplt_shdr）；<br>通过上一步获取的节，分别获得对应的表，并将其缓存；</p>
+<pre><code><span class="keyword">char</span> *shstrtab = (<span class="keyword">char</span> *)malloc(shstr -&gt; sh_size);
+lseek(fd, shstr -&gt; sh_offset, SEEK_SET);
+read(fd, shstrtab, shstr -&gt; sh_size);
+Elf32_Shdr *shdr = (Elf32_Shdr *)malloc(<span class="keyword">sizeof</span>(Elf32_Shdr));
+lseek(fd, shdr_base, SEEK_SET);
+uint16_t i;
+<span class="keyword">char</span> *<span class="keyword">str</span> = NULL;
+Elf32_Shdr *relplt_shdr = (Elf32_Shdr *) malloc(<span class="keyword">sizeof</span>(Elf32_Shdr));
+Elf32_Shdr *dynsym_shdr = (Elf32_Shdr *) malloc(<span class="keyword">sizeof</span>(Elf32_Shdr));
+Elf32_Shdr *dynstr_shdr = (Elf32_Shdr *) malloc(<span class="keyword">sizeof</span>(Elf32_Shdr));
+Elf32_Shdr *got_shdr = (Elf32_Shdr *) malloc(<span class="keyword">sizeof</span>(Elf32_Shdr));
+<span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; shnum; ++i) {
+    read(fd, shdr, <span class="keyword">sizeof</span>(Elf32_Shdr));
+    <span class="keyword">str</span> = shstrtab + shdr -&gt; sh_name;
+    <span class="keyword">if</span>(strcmp(<span class="keyword">str</span>, <span class="string">".dynsym"</span>) == <span class="number">0</span>)
+        memcpy(dynsym_shdr, shdr, <span class="keyword">sizeof</span>(Elf32_Shdr));
+    <span class="keyword">else</span> <span class="keyword">if</span>(strcmp(<span class="keyword">str</span>, <span class="string">".dynstr"</span>) == <span class="number">0</span>)
+        memcpy(dynstr_shdr, shdr, <span class="keyword">sizeof</span>(Elf32_Shdr));
+    <span class="keyword">else</span> <span class="keyword">if</span>(strcmp(<span class="keyword">str</span>, <span class="string">".got"</span>) == <span class="number">0</span>)
+        memcpy(got_shdr, shdr, <span class="keyword">sizeof</span>(Elf32_Shdr));
+    <span class="keyword">else</span> <span class="keyword">if</span>(strcmp(<span class="keyword">str</span>, <span class="string">".rel.plt"</span>) == <span class="number">0</span>)
+        memcpy(relplt_shdr, shdr, <span class="keyword">sizeof</span>(Elf32_Shdr));
+}
+
+<span class="comment">//读取字符表</span>
+<span class="keyword">char</span> *dynstr = (<span class="keyword">char</span> *) malloc(<span class="keyword">sizeof</span>(<span class="keyword">char</span>) * dynstr_shdr-&gt;sh_size);
+lseek(fd, dynstr_shdr-&gt;sh_offset, SEEK_SET);
+<span class="keyword">if</span>(read(fd, dynstr, dynstr_shdr-&gt;sh_size) != dynstr_shdr-&gt;sh_size)
+    <span class="keyword">return</span> -<span class="number">1</span>;
+
+<span class="comment">//读取符号表</span>
+Elf32_Sym *dynsymtab = (Elf32_Sym *) malloc(dynsym_shdr-&gt;sh_size);
+printf(<span class="string">"dynsym_shdr-&gt;sh_size\t0x%x\n"</span>, dynsym_shdr-&gt;sh_size);
+lseek(fd, dynsym_shdr-&gt;sh_offset, SEEK_SET);
+<span class="keyword">if</span>(read(fd, dynsymtab, dynsym_shdr-&gt;sh_size) != dynsym_shdr-&gt;sh_size)
+    <span class="keyword">return</span> -<span class="number">1</span>;
+
+<span class="comment">//读取重定位表</span>
+Elf32_Rel *rel_ent = (Elf32_Rel *) malloc(<span class="keyword">sizeof</span>(Elf32_Rel));
+lseek(fd, relplt_shdr-&gt;sh_offset, SEEK_SET);
+<span class="keyword">if</span>(read(fd, rel_ent, <span class="keyword">sizeof</span>(Elf32_Rel)) != <span class="keyword">sizeof</span>(Elf32_Rel))
+    <span class="keyword">return</span> -<span class="number">1</span>;
+</code></pre></li>
+<li><p>获取指定符号在got表的偏移地址：</p>
+<pre><code><span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; relplt_shdr-&gt;sh_size / sizeof(Elf32_Rel); i++)
+{
+    uint16_t ndx = ELF32_R_SYM(rel_ent-&gt;r_info);
+    LOGD(<span class="string">"ndx = <span class="variable">%d</span>, str = <span class="variable">%s</span>"</span>, ndx, dynstr + dynsymtab[ndx].st_name);
+    <span class="keyword">if</span> (strcmp(dynstr + dynsymtab[ndx].st_name, symbol_name) == <span class="number">0</span>)
+    {
+        LOGD(<span class="string">"符号<span class="variable">%s</span>在got表的偏移地址为: 0x<span class="variable">%x</span>"</span>, symbol_name, rel_ent-&gt;r_offset);
+        offset = rel_ent-&gt;r_offset;
+        <span class="keyword">break</span>;
+    }
+    <span class="keyword">if</span>(<span class="keyword">read</span>(fd, rel_ent, sizeof(Elf32_Rel)) != sizeof(Elf32_Rel))
+    {
+        LOGD(<span class="string">"获取符号<span class="variable">%s</span>的重定位信息失败"</span>, symbol_name);
+        <span class="keyword">return</span> -<span class="number">1</span>;
+    }
+}
+
+//获取指定符号的地址
+<span class="keyword">if</span>(offset == <span class="number">0</span>)
+{
+    LOGD(<span class="string">"获取符号<span class="variable">%s</span>在got表中的偏移地址失败，可能为静态链接，开始重新获取符号地址"</span>, symbol_name);
+    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; (dynsym_shdr-&gt;sh_size) / sizeof(Elf32_Sym); ++i)
+    {
+        <span class="keyword">if</span>(strcmp(dynstr + dynsymtab[i].st_name, symbol_name) == <span class="number">0</span>)
+        {
+            LOGD(<span class="string">"符号<span class="variable">%s</span>的地址位: 0x<span class="variable">%x</span>"</span>, symbol_name, dynsymtab[i].st_value);
+            offset = dynsymtab[i].st_value;
+            <span class="keyword">break</span>;
+        }
+    }
+}
+
+<span class="keyword">if</span>(offset == <span class="number">0</span>)
+{
+    LOGD(<span class="string">"符号<span class="variable">%s</span>地址获取失败"</span>, symbol_name);
+    <span class="keyword">return</span> -<span class="number">1</span>;
+}
+</code></pre></li>
+</ul>
+</li>
+<li><p><strong>如何实现对接</strong>：<br> 在实际情况下，我们有一种需求是，在执行完我们自己的函数后，需要返回继续执行原函数，并且要对该函数持续的Hook。我的思路是这样的：在我们自己的函数中，首先采用内联汇编的方式将全部寄存器值压栈保存（STMFD SP!, {R0 - R12, LR}），接着执行自己的流程，最后将保存的寄存器值出栈恢复（LDMFD SP!, {R0 - R12}），并且强制跳转到原函数的入口地址（”LDR LR, =original_addr \n” “LDR LR, [LR] \n” “BLX LR \n”），最后强制程序返回。事实上，就是把原函数当做自己函数的子函数。</p>
+<pre><code>__asm__ __volatile__ (
+        //<span class="string">"SUB LR, LR, #4 \n"</span>
+        <span class="string">"STMFD SP!, {R0 - R12, LR} \n"</span>
+);
+
+//自己的函数
+myfun();
+
+__asm__ __volatile__ (
+    <span class="string">"LDMFD SP!, {R0 - R12} \n"</span>
+    <span class="string">"LDR LR, =original_addr \n"</span>
+    <span class="string">"LDR LR, [LR] \n"</span>
+    <span class="string">"BLX LR \n"</span>
+    <span class="string">"LDMFD SP!, {PC} \n"</span>
+);
+</code></pre></li>
+</ol>
+<h2 id="0x5_参考">0x5 参考</h2><p>   链接程序与库指南：<a href="http://docs.oracle.com/cd/E26926_01/html/E25910/chapter6-43405.html#scrolltoc" target="_blank" rel="external">http://docs.oracle.com/cd/E26926_01/html/E25910/chapter6-43405.html#scrolltoc</a><br>    Android利用ptrace实现Hook API：<a href="http://blog.sina.com.cn/s/blog_dae890d10101f00d.html" target="_blank" rel="external">http://blog.sina.com.cn/s/blog_dae890d10101f00d.html</a></p>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/Android安全/" class="post__tag__link">Android安全</a></li><li class="post__tag__item"><a href="/tags/GOT表HOOK/" class="post__tag__link">GOT表HOOK</a></li></ul><a href="/Android安全/Android GOT表HOOK技术.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/Android安全/Android GOT表HOOK技术.html" class="disqus-comment-count"></div></footer></article></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><span title="Previous" class="page-menu__link icon-arrow-left page-menu__link--disabled"></span></li><li class="page-menu__item"><span title="Next" class="page-menu__link icon-arrow-right page-menu__link--disabled"></span></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","count");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

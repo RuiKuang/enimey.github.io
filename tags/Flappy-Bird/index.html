@@ -1,0 +1,97 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>Flappy Bird - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2014-11-01T12:20:00.000Z" class="post__time">十一月 1, 2014</time><h1 class="post__title"><a href="/Android安全/Flappy Bird安卓版 逆向分析.html">Flappy Bird安卓版 逆向分析</a></h1></header><div class="post__main echo"><hr>
+<h2 id="0x1">0x1</h2><p>目标APK：Flappy Bird安卓版<br>使用工具：APK改之理<br>目的：修改每过一关的增长分数、取消水管碰撞检测、取消落地检测</p>
+<h2 id="0x2">0x2</h2><ul>
+<li><p><strong>修改每过一关的增长分数</strong><br>  反编译的步骤就不介绍了，我们直接来看反编译得到的文件夹：<br>  <img src="/img/笔记/Flappy Bird/1.png" alt="1_png"><br>  <strong>方法1</strong>：在smali目录下，我们看到org/andengine/，可以知晓游戏是由andengine引擎开发的。打开/res/raw/atlas.txt文件,找到如下信息：<br>  <img src="/img/笔记/Flappy Bird/2.png" alt="2_png"><br>  我们直接把number<em>score<em>00 01….08的坐标值全部修改为number<em>score<em>09的坐标值，重新打包并签名apk，运行测试，0-9关分数一直为9分，10-99关分数一直为99分。
+  </em></em>方法2</em></em>：打开string.xml,没有找到有用的信息，由于代码是被混淆过的，无法直接根据类名找关键代码。我们换另一种方式，查找string变量，用工具apk改之理打开apk文件，选中smali/com/dotgears/文件夹，在软件右侧面板，按如下操作：<br>  <img src="/img/笔记/Flappy Bird/3.png" alt="3_png"><br>  在搜索结果中，有这样一条记录：</p>
+<pre><code><span class="keyword">const</span>-<span class="built_in">string</span> v0, <span class="string">"0123456789"</span>
+</code></pre><p>  我们不妨猜测该字符串是用来获取分数的，双击来到所在文件，<strong>\com\dotgears\h.smali</strong>。关键代码如下：</p>
+<pre><code><span class="comment"># direct methods   </span>
+<span class="keyword">.method</span><span class="keyword"> static</span><span class="keyword"> constructor</span><span class="function"> &lt;clinit&gt;(</span><span class="function">)</span>V    
+<span class="keyword">.locals</span> 1<span class="instruction">
+const-string </span><span class="variable">v0</span>, <span class="string">"0123456789"</span><span class="instruction">
+sput-object </span><span class="variable">v0</span>, <span class="class">Lcom/dotgears/h;</span>-&gt;l:<span class="class">Ljava/lang/String;</span><span class="instruction">
+return-void </span><span class="keyword">  
+.end method</span>
+</code></pre><p>  为了测试我们的猜测，直接将“0123456789”修改为“9999999999”，打包签名安装，运行测试，0-9关分数一直为9分，10-99关分数一直为99分。猜测正确。</p>
+<pre><code>sput-object v0, Lcom<span class="regexp">/dotgears/</span>h;-&gt;<span class="string">l:</span>Ljava<span class="regexp">/lang/</span>String  <span class="comment">//将string类型的变量I赋值为“0123456789”</span>
+</code></pre><p>  我们在当前文件查找l:Ljava/lang/String, 在方法.method public a(II)V中发现调用，部分代码为：</p>
+<pre><code>sget-object <span class="variable">v5</span>, <span class="class">Lcom/dotgears/h;</span>-&gt;l:<span class="class">Ljava/lang/String;</span><span class="instruction">
+invoke-virtual </span>{<span class="variable">v5</span>, <span class="variable">v2</span>}, <span class="class">Ljava/lang/String;</span><span class="function">-&gt;charAt(</span>I<span class="function">)</span>C
+</code></pre><p>  我们转到反编译出的java代码来仔细看下该方法：</p>
+<pre><code><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">a</span><span class="params">(<span class="keyword">int</span> paramInt1, <span class="keyword">int</span> paramInt2)</span>
+</span>{
+    <span class="keyword">this</span>.k = <span class="number">0</span>;
+    <span class="keyword">int</span> m = paramInt1;
+    <span class="keyword">if</span> (paramInt2 &lt;= <span class="number">0</span>);
+    <span class="keyword">for</span> (<span class="keyword">int</span> i1 = <span class="number">0</span>; ; i1++)
+    {
+      <span class="keyword">if</span> (i1 &gt;= <span class="keyword">this</span>.k)
+      {
+        <span class="keyword">if</span> (<span class="keyword">this</span>.k == <span class="number">0</span>)
+        {
+          <span class="keyword">this</span>.i[<span class="number">0</span>] = <span class="string">'0'</span>;
+          <span class="keyword">this</span>.k = <span class="number">1</span>;
+        }
+        <span class="keyword">return</span>;
+        <span class="keyword">if</span> (m &lt;= <span class="number">0</span>);
+        <span class="keyword">while</span> (<span class="keyword">true</span>)
+        {
+          paramInt2--;
+          <span class="keyword">break</span>;
+          <span class="keyword">int</span> n = m % <span class="number">10</span>;
+          m /= <span class="number">10</span>;
+          <span class="keyword">this</span>.j[<span class="keyword">this</span>.k] = l.charAt(n);
+          <span class="keyword">this</span>.k = (<span class="number">1</span> + <span class="keyword">this</span>.k);
+        }
+      }
+      <span class="keyword">this</span>.i[i1] = <span class="keyword">this</span>.j[(-<span class="number">1</span> + (<span class="keyword">this</span>.k - i1))];
+    }
+}
+</code></pre><p>  参数paramInt1为所得分数，paramInt2为所得分数位数</p>
+<pre><code>int <span class="keyword">n</span> = <span class="keyword">m</span> % 10; <span class="comment">//获取分数低位</span>
+<span class="keyword">m</span> /= 10; <span class="comment">//获取分数高位</span>
+this.j[this.k] = <span class="keyword">l</span>.charAt(<span class="keyword">n</span>); <span class="comment">//取分数</span>
+</code></pre><p>  验证：我们直接在该方法中对参数进行赋值，然后打包签名，安装测试即可。事实上，该方法的作用是实时更新界面上方的显示的分数。<br>  通过修改此处的参数paramInt1的值，我们就可以修改上方显示的分数，但是最终记录的分数仍然未改变，为此我们必须找到该方法在哪里被程序调用，以及参数paramInt1是如何得来的。<br>  利用ida或者jeb定位到上层调用方法：</p>
+<pre><code><span class="keyword">this</span>.an.a(<span class="keyword">this</span>.y, <span class="number">20</span>);
+</code></pre><p>  即参数paramInt1为this.y，参数paramInt2固定取20。<br>  继续往上搜索变量this.y，来到此处：</p>
+<pre><code><span class="keyword">if</span> ((<span class="keyword">this</span>.ao &gt; <span class="number">0</span>) &amp;&amp; (<span class="keyword">this</span>.ak &lt;= <span class="number">0</span>) &amp;&amp; ((<span class="keyword">this</span>.ag == <span class="keyword">this</span>.J.b) || (<span class="keyword">this</span>.ag == -<span class="number">1</span> + <span class="keyword">this</span>.J.b)))
+{
+    <span class="keyword">this</span>.y = (<span class="number">1</span> + <span class="keyword">this</span>.y);
+    c(<span class="number">9</span>, <span class="number">0</span>);
+}
+</code></pre><p>  this.y在前面已被初始化为0，此处，if循环应为判断是否得分的条件，如果为真，则分数加1。显然，我们直接将1修改为我们所希望的增长分数即可。打开对应的smali文件：/dotgears/flappy/c.smali，修改第489行代码：</p>
+<pre><code>add-int/lit8 <span class="variable">v0</span>, <span class="variable">v0</span>, 0x1 -&gt;<span class="instruction"> add-int/lit8 </span><span class="variable">v0</span>, <span class="variable">v0</span>, 0x* <span class="function"> //*为你所希望的增长分数(</span>16进制<span class="function">)</span>
+</code></pre><p>  重新打包，签名安装，测试通过。</p>
+</li>
+<li><p><strong>取消水管碰撞检测</strong><br>  修改文件：<strong>/com/dotgears/flappy/c.smali</strong><br>  修改前后对比（这个方法就是水管的碰撞检测，直接使返回值固定为0即可）：<br>  <img src="/img/笔记/Flappy Bird/4.png" alt="4_png"><br>  <img src="/img/笔记/Flappy Bird/5.png" alt="5_png"></p>
+</li>
+</ul>
+<p>*<strong>取消落地检测</strong><br>    修改文件：<strong>/com/dotgears/flappy/c.smali</strong><br>    修改方法.method public b(F)V中部分代码，修改前后对比（取消落地检测判断，无条件跳转）：<br>    <img src="/img/笔记/Flappy Bird/6.png" alt="6_png"><br>    <img src="/img/笔记/Flappy Bird/7.png" alt="7_png"></p>
+<p>工具下载地址：<a href="http://pan.baidu.com/s/1ntyk1uT" target="_blank" rel="external">http://pan.baidu.com/s/1ntyk1uT</a><br>原始apk：<a href="http://pan.baidu.com/s/1jGsQTfS" target="_blank" rel="external">http://pan.baidu.com/s/1jGsQTfS</a></p>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/Android安全/" class="post__tag__link">Android安全</a></li><li class="post__tag__item"><a href="/tags/Flappy-Bird/" class="post__tag__link">Flappy Bird</a></li></ul><a href="/Android安全/Flappy Bird安卓版 逆向分析.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/Android安全/Flappy Bird安卓版 逆向分析.html" class="disqus-comment-count"></div></footer></article></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><span title="Previous" class="page-menu__link icon-arrow-left page-menu__link--disabled"></span></li><li class="page-menu__item"><span title="Next" class="page-menu__link icon-arrow-right page-menu__link--disabled"></span></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","count");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

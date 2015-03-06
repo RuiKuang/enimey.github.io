@@ -1,0 +1,31 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>2015移动安全挑战赛-第1题 - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2015-01-26T09:33:02.000Z" class="post__time">一月 26, 2015</time><h1 class="post__title"><a href="/Android安全/2015移动安全挑战赛-第1题.html">2015移动安全挑战赛-第1题</a></h1></header><div class="post__main echo"><h2 id="0x0">0x0</h2><p>这次算是正式的参加了一次线上的比赛，所以还是记录下来。</p>
+<h2 id="0x1">0x1</h2><p>链接：<a href="http://msc.pediy.com/timu.htm" target="_blank" rel="external">http://msc.pediy.com/timu.htm</a><br>平台：Android<br>类型：CrackMe</p>
+<h2 id="0x2">0x2</h2><p>第一题非常简单，送分题。逻辑全部在Java层，还贴心的帮我们打了log，么么哒！<br><img src="/img/Android安全/2015移动安全挑战赛-第1题/1.png" alt="1_png"><br>table是映射表，pw是正确的映射结果，enPassword是我们输入数据的映射结果，当pw==enPassword时验证成功。<br>最终的密码为：581026</p>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/Android安全/" class="post__tag__link">Android安全</a></li><li class="post__tag__item"><a href="/tags/crackme/" class="post__tag__link">crackme</a></li></ul><a href="/Android安全/2015移动安全挑战赛-第1题.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/Android安全/2015移动安全挑战赛-第1题.html" class="disqus-comment-count"></div></footer></article><div class="comments"><div id="disqus_thread"><noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript></div></div></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><a title="Previous" href="/Android安全/2015移动安全挑战赛-第2题.html" class="page-menu__link icon-arrow-left"></a></li><li class="page-menu__item"><a title="Next" href="/Android安全/看雪-2014 APP应用攻防竞赛第二阶段第2题（攻击篇）解析.html" class="page-menu__link icon-arrow-right"></a></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","embed");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

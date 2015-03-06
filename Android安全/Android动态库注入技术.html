@@ -1,0 +1,76 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>Android动态库注入技术 - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2014-11-02T05:30:00.000Z" class="post__time">十一月 2, 2014</time><h1 class="post__title"><a href="/Android安全/Android动态库注入技术.html">Android动态库注入技术</a></h1></header><div class="post__main echo"><hr>
+<p>关于这方面技术，网上已经有大把的实现。在此，我只是记录下自己的学习过程。</p>
+<h2 id="0x1_原理">0x1 原理</h2><p>所谓的SO注入就是将代码拷贝到目标进程中，并结合函数重定向等其他技术，最终达到监控或改变目标进程行为的目的。Android是基于Linux内核的操作系统，而在Linux下SO注入基本是基于调试API函数ptrace实现的，同样Android的SO注入也是基于ptrace函数，要完成注入还需获取root权限。</p>
+<h2 id="0x2_流程">0x2 流程</h2><p>注入过程如下：</p>
+<ul>
+<li>获取目标进程的pid，关联目标进程；</li>
+<li>获取并保存目标进程寄存器值；</li>
+<li>获取目标进程的dlopen，dlsym函数的绝对地址；</li>
+<li>获取并保存目标进程的堆栈，设置dlopen函数的相关参数，将要注入的SO的绝对路径压栈；</li>
+<li>调用dlopen函数；</li>
+<li>调用dlsym函数，获取SO中要执行的函数地址；</li>
+<li>调用要执行的函数；</li>
+<li>恢复目标进程的堆栈，恢复目标进程寄存器值，解除关联，完成SO动态库注入；</li>
+</ul>
+<p>（注：实际上，0x06和0x07并不属于SO动态库注入的步骤，然而仅仅注入是完全没有意义的，通常我们需要执行SO中的函数。）</p>
+<h2 id="0x3_实现">0x3 实现</h2><ul>
+<li><strong>获取目标进程的pid，关联目标进程</strong>：<br>  通过遍历查找/proc/pid/cmdline文件中是否含有目标进程名process_name,若有则进程名对应的进程号即为pid。接着，直接调用函数ptrace_attach(pid)即可完成关联。</li>
+<li><strong>获取并保存目标进程寄存器值</strong>：<br>  直接调用ptrace(PTRACE_GETREGS, pid, NULL, &amp;saved_regs)，当然saved_regs要定义为全局变量。</li>
+<li><strong>获取目标进程的dlopen，dlsym函数的绝对地址</strong>：<br>  大概思路是这样的：首先通过遍历/proc/pid/maps文件分别得到本进程中dlopen函数所在动态库的基地址local_module_base和目标进程dlopen函数所在动态库的基地址remote_module_base，接着获取本进程dlopen函数的绝对地址local_addr = (void*)dlopen。需要明白的是，不同进程中相同的动态库中的同一个函数的偏移地址一定是一样的，所以目标进程dlopen函数的绝对地址为：local_addr - local_module_base + remote_module_base。dlsym同理，不再详述。</li>
+<li><strong>获取并保存目标进程的堆栈，设置dlopen函数的相关参数，将要注入的SO的绝对路径压栈</strong>：<br>  当我们的要执行的函数的某些参数需要压入堆栈的时候，就需要提前保存堆栈状态，调用ptrace_readdata(pid, (void <em>)regs.ARM_sp, (void </em>)sbuf, sizeof(sbuf))，其中sbuf为char数组，用来存放堆栈。调用ptrace_writedata(pid, (void <em>)regs.ARM_sp, (void </em>)so_path, strlen(so_path) + 1)，其中so_path为SO的绝对路径。函数传参规则：前四个参数分别由寄存器r0、r1、r2、r3存放，超过四个参数则压入堆栈。</li>
+<li><strong>调用dlopen函数</strong>：<br>  参数设置好后，设置ARM_pc = dlopen_addr, ARM_lr = 0。调用ptrace_setregs(pid, regs)写入修改后的寄存器值，调用ptrace_continue( pid )使目标进程继续运行。（注：dlopen_addr为0x03获取到的目标进程dlopen函数的绝对地址，ARM_lr = 0的目的在于当目标进程执行完dlopen函数，使目标进程发生异常，从而让本进程重新获得控制权。）</li>
+<li><strong>调用dlsym函数，获取SO中要执行的函数地址</strong>：<br>  实现方式与调用dlopen函数类似，不再详述。</li>
+<li><strong>调用要执行的函数</strong>：<br>  实现方式与调用dlopen函数类似，不再详述。</li>
+<li><strong>恢复目标进程的堆栈，恢复目标进程寄存器值，解除关联，完成SO动态库注入</strong>：<br>  调用ptrace_writedata(pid, (uint8_t <em>)saved_regs.ARM_sp, (uint8_t </em>)sbuf, sizeof(sbuf))恢复堆栈，调用ptrace_setregs(pid, &amp;saved_regs)恢复寄存器值，调用ptrace_detach(pid)解除关联，完成SO动态库注入。</li>
+</ul>
+<h2 id="0x4_代码">0x4 代码</h2><p>贴一下主要逻辑代码：</p>
+<pre><code>pid_t pid = find_pid_of(<span class="string">"xxx"</span>);
+ptrace_attach(pid);
+<span class="keyword">uint32_t</span> *inject_so_of(pid_t pid, <span class="keyword">const</span> <span class="keyword">char</span> *so_path) {
+    <span class="keyword">int</span> status = <span class="number">0</span>;
+    <span class="keyword">struct</span> pt_regs regs;
+    <span class="built_in">memcpy</span>(&amp;regs, &amp;saved_regs, <span class="keyword">sizeof</span>(regs));
+    ptrace_readdata(pid, (<span class="keyword">void</span> *)regs.ARM_sp, (<span class="keyword">void</span> *)sbuf, <span class="keyword">sizeof</span>(sbuf));
+    ptrace_writedata(pid, (<span class="keyword">void</span> *)regs.ARM_sp, (<span class="keyword">void</span> *)so_path, <span class="built_in">strlen</span>(so_path) + <span class="number">1</span>);
+    <span class="keyword">uint32_t</span> parameters[<span class="number">2</span>];
+    parameters[<span class="number">0</span>] = regs.ARM_sp;
+    parameters[<span class="number">1</span>] = RTLD_NOW;
+    <span class="keyword">if</span> ( ptrace_call(pid, find_dlopen_addr(pid), parameters, <span class="number">2</span>, &amp;regs ) == -<span class="number">1</span> )
+        DPRINTF(<span class="string">"dlopen error\n"</span>);
+    ptrace_getregs(pid, &amp;regs);
+    <span class="keyword">uint32_t</span> r0 = regs.ARM_r0;
+    DPRINTF(<span class="string">"[+2]\t注入动态库成功，返回的句柄为: %x\n"</span>, r0);
+    ptrace_setregs(pid, &amp;saved_regs);
+    ptrace_writedata(pid, (<span class="keyword">uint8_t</span> *)saved_regs.ARM_sp, (<span class="keyword">uint8_t</span> *)sbuf, <span class="keyword">sizeof</span>(sbuf));
+    ptrace_detach(pid);
+    <span class="keyword">return</span> (<span class="keyword">uint32_t</span> *)r0;
+}
+</code></pre><h2 id="0x5_参考">0x5 参考</h2><p>玩转ptrace：<a href="http://blog.csdn.net/sealyao/article/details/6710772" target="_blank" rel="external">http://blog.csdn.net/sealyao/article/details/6710772</a><br>《转载》linux动态库注入：<a href="http://blog.chinaunix.net/uid-7247280-id-2060516.html" target="_blank" rel="external">http://blog.chinaunix.net/uid-7247280-id-2060516.html</a><br>发个Android平台上的注入代码：<a href="http://bbs.pediy.com/showthread.php?t=141355" target="_blank" rel="external">http://bbs.pediy.com/showthread.php?t=141355</a></p>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/Android安全/" class="post__tag__link">Android安全</a></li><li class="post__tag__item"><a href="/tags/动态库注入/" class="post__tag__link">动态库注入</a></li></ul><a href="/Android安全/Android动态库注入技术.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/Android安全/Android动态库注入技术.html" class="disqus-comment-count"></div></footer></article><div class="comments"><div id="disqus_thread"><noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript></div></div></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><a title="Previous" href="/Android安全/Android GOT表HOOK技术.html" class="page-menu__link icon-arrow-left"></a></li><li class="page-menu__item"><a title="Next" href="/Android安全/Flappy Bird安卓版 逆向分析.html" class="page-menu__link icon-arrow-right"></a></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","embed");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>icmpsh for Android - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2014-11-13T02:53:00.000Z" class="post__time">十一月 13, 2014</time><h1 class="post__title"><a href="/Android安全/icmpsh for Android.html">icmpsh for Android</a></h1></header><div class="post__main echo"><hr>
+<h2 id="0x1_背景">0x1 背景</h2><p>前几天在freebuf上看到了一篇基于ICMP协议的shell：<a href="http://www.freebuf.com/articles/system/50361.html，" target="_blank" rel="external">http://www.freebuf.com/articles/system/50361.html，</a><br>看了下觉得挺有意思，所以就在网上找了个源码移植到了Android上。</p>
+<hr>
+<h2 id="0x2_演练">0x2 演练</h2><p>源码下载地址：<a href="http://ncu.dl.sourceforge.net/project/icmpshell/ish/v0.2/ish-v0.2.tar.gz" target="_blank" rel="external">http://ncu.dl.sourceforge.net/project/icmpshell/ish/v0.2/ish-v0.2.tar.gz</a><br>不过它是针对linux平台的，要在Android上应用需要稍做修改：<br><code>修改源码中的&quot;/bin/sh&quot;为&quot;/system/bin/sh&quot;</code><br>修改Makefile文件：</p>
+<pre><code>CC = gcc
+CFLAGS1 = -static -g -Wall
+CFLAGS2 = -static -g -Wall -lsocket
+STRIP = strip
+
+default:
+    @echo <span class="string">"-------------------------------"</span>
+    @echo <span class="string">"Make with the OS from the list:"</span>
+    @echo <span class="string">""</span>
+    @echo <span class="string">"1.) linux"</span>
+    @echo <span class="string">"2.) bsd"</span>
+    @echo <span class="string">"3.) solaris"</span>
+    @echo <span class="string">"4.) android"</span>
+    @echo <span class="string">""</span>
+    @echo <span class="string">"ex: make bsd"</span>
+    @echo <span class="string">"-------------------------------"</span>
+
+
+clean:
+    /bin/rm -f ish ishd
+
+linux:    clean cc1 fin
+
+bsd:    clean cc1 fin
+
+solaris:    clean cc2 fin
+
+android:    clean cc3 
+
+cc1:
+    $(CC) $(CFLAGS1) -o ish ish<span class="class">.c</span> ish_main<span class="class">.c</span>
+    $(CC) $(CFLAGS1) -o ishd ishd<span class="class">.c</span> ish_main<span class="class">.c</span> ish_open<span class="class">.c</span>
+
+cc2:
+    $(CC) $(CFLAGS2) -o ish ish<span class="class">.c</span> ish_main<span class="class">.c</span>
+    $(CC) $(CFLAGS2) -o ishd ishd<span class="class">.c</span> ish_main<span class="class">.c</span> ish_open<span class="class">.c</span>
+
+cc3:
+    arm-linux-gnueabi-gcc $(CFLAGS1) -o ish-arm ish<span class="class">.c</span> ish_main<span class="class">.c</span>
+    arm-linux-gnueabi-gcc $(CFLAGS1) -o ishd-arm ishd<span class="class">.c</span> ish_main<span class="class">.c</span> ish_open<span class="class">.c</span>
+
+fin:
+    $(STRIP) ish
+    $(STRIP) ishd
+</code></pre><p>其实就是添加了一个Android的交叉编译选项，并且添加了-static选项。<br><figure class="highlight vim"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cd</span> ISHELL-v0.<span class="number">2</span></span><br><span class="line"><span class="keyword">make</span> android</span><br><span class="line"><span class="keyword">make</span> linux</span><br></pre></td></tr></table></figure></p>
+<p>编译完成后得到四个文件：<br><code>ish ishd ish-arm ishd-arm</code><br>将ishd-arm push到手机中，并赋予可执行权限<br>Android端运行：<br><code>su -c ishd-arm -d</code><br>Linux端运行(将ip换成你手机的ip地址)：<br><code>sudo ish ip</code><br>大功告成！</p>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/Android安全/" class="post__tag__link">Android安全</a></li><li class="post__tag__item"><a href="/tags/icmpsh/" class="post__tag__link">icmpsh</a></li></ul><a href="/Android安全/icmpsh for Android.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/Android安全/icmpsh for Android.html" class="disqus-comment-count"></div></footer></article><div class="comments"><div id="disqus_thread"><noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript></div></div></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><a title="Previous" href="/Android安全/SCTF上的一道Android题.html" class="page-menu__link icon-arrow-left"></a></li><li class="page-menu__item"><a title="Next" href="/Android安全/看雪-2014 APP应用攻防竞赛第二阶段第1题（攻击篇）解析.html" class="page-menu__link icon-arrow-right"></a></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","embed");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>

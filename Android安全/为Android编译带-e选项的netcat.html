@@ -1,0 +1,37 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="description" content="Android安全"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="alternative" href="/atom.xml" title="Auo's Blog" type="application/atom+xml"><link rel="icon" href="/favicon.ico"><script>var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?eb33860bc9b0fd75604f8385db86630f";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-56323784-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script><title>为Android编译带-e选项的netcat - Auo's Blog</title><link rel="stylesheet" href="/css/main.css" type="text/css"><!--[if lt IE 9]><script>(function(a,b){a="abbr article aside audio bdi canvas data datalist details dialog figcaption figure footer header hgroup main mark meter nav output progress section summary template time video".split(" ");for(b=a.length-1;b>=0;b--)document.createElement(a[b])})()</script><![endif]--></head><body><header class="head"><h1 class="head-title u-fl"><a href="/">Auo's Blog</a></h1><nav class="head-nav u-fr"><ul class="head-nav__list"><li class="head-nav__item"><a href="/" class="head-nav__link">Home</a></li><li class="head-nav__item"><a href="/archives" class="head-nav__link">Archives</a></li></ul></nav></header><main class="main"><article class="post"><header class="post__head"><time datetime="2015-03-06T09:10:20.000Z" class="post__time">三月 6, 2015</time><h1 class="post__title"><a href="/Android安全/为Android编译带-e选项的netcat.html">为Android编译带-e选项的netcat</a></h1></header><div class="post__main echo"><h1 id="0x0环境">0x0环境</h1><p>OS：Ubuntu14.04 64</p>
+<hr>
+<h2 id="0x1_编译busybox">0x1 编译busybox</h2><p>首先到<a href="http://www.busybox.net/" target="_blank" rel="external">这里</a>下载busybox源码，这里我下载的版本为1.23.1。<br>搭建交叉编译环境：<br><code>apt-get install gcc-arm-linux-gnueabi libc-dev-armel-cross</code><br>在busybox目录下执行：<br><code>make menuconfig</code><br>进入图形选择模式，必填的选项为：<br><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Busybox Settings-&gt;General Configuration-&gt;</span><br><span class="line">[*]Don't <span class="keyword">use</span> /usr</span><br><span class="line">Busybox Settings-&gt;Build Options-&gt;</span><br><span class="line">[*] Build BusyBox <span class="keyword">as</span> a <span class="keyword">static</span> binary (no shared libs)</span><br><span class="line">(arm-linux-gnueabi-) Cross Compiler prefix</span><br><span class="line">Networking Utilities-&gt;</span><br><span class="line">[*] Netcat <span class="number">1.10</span> compatibility (+<span class="number">2.5</span>k)</span><br></pre></td></tr></table></figure></p>
+<p>保存设置退出menuconfig，执行：<br><code>make -j8</code><br>成功后会在当前目录生产busybox，通过busybox nc即可调用netcat。</p>
+<hr>
+<h2 id="0x2_编译netcat">0x2 编译netcat</h2><p>由于不能直接从busybox单独的提取出netcat命令，所以使用郑郭busybox稍显臃肿（strip版本大概为2m），所以我又决定直接对netcat源码进行交叉编译。<br>首先到<a href="http://netcat.sourceforge.net/" target="_blank" rel="external">这里</a>下载netcat源码这里我下载的版本是0.7.1。<br>这里可以采用两种编译手段：</p>
+<h5 id="gnu编译">gnu编译</h5><p>搭建交叉编译环境：<br><code>apt-get install gcc-arm-linux-gnueabi libc-dev-armel-cross</code><br>修改netcat目录src文件夹下的netcat.c文件，在首部添加两个宏：#define GAPING_SECURITY_HOLE，#define TELNET。<br>在netcat目录下执行：<br><code>./configure --host=arm-linux CC=arm-linux-gnueabi-gcc CFLAGS=&quot;-static -O2&quot;</code><br><code>--prefix= /home/auo/Temp/netcat-0.7.1/out</code><br>具体路径请自行修改。<br>成功后，执行：<br><code>make -j8</code><br>成功后继续执行：<br><code>make install</code><br>生成后的netcat在/home/auo/Temp/netcat-0.7.1/out/bin/目录下，最后执行：<br><code>arm-linux-gnueabi-strip -s &#39;/home/auo/Temp/netcat-0.7.1/out/bin/netcat&#39;</code><br>strip后netcat的大小为583.1kB。</p>
+<h5 id="NDK编译">NDK编译</h5><p>修改netcat目录src文件夹下的netcat.c文件，在首部添加两个宏：#define GAPING_SECURITY_HOLE，#define TELNET。<br>在netcat目录下执行：<br><code>./configure --host=arm-linux CC=arm-linux-androideabi-gcc</code><br><code>CFLAGS=&quot;-static --sysroot=/home/auo/Android/android-ndk-r10d/platforms/android-21/arch-arm -O2&quot;</code><br><code>--prefix=/home/auo/Temp/netcat-0.7.1/out</code><br>具体路径请自行修改，环境变量自行添加。<br>成功后，执行：<br><code>make -j8</code><br>成功后继续执行：<br><code>make install</code><br>生成后的netcat在/home/auo/Temp/netcat-0.7.1/out/bin/目录下，最后执行：<br><code>arm-linux-androideabi-strip -s &#39;/home/auo/Temp/netcat-0.7.1/out/bin/netcat&#39;</code><br>strip后netcat的大小为326.1kB，显而易见，使用ndk编译出的netcat体积要减小很多。</p>
+<h5 id="后话">后话</h5><p>现在有了-e选项的netcat for android，反弹android shell就非常方便了。</p>
+</div><footer class="post__foot u-cf"><ul class="post__tag u-fl"><li class="post__tag__item"><a href="/tags/Android安全/" class="post__tag__link">Android安全</a></li><li class="post__tag__item"><a href="/tags/netcat-for-android/" class="post__tag__link">netcat for android</a></li></ul><a href="/Android安全/为Android编译带-e选项的netcat.html#disqus_thread" class="post__foot-link u-fr">COMMENTS</a><div data-disqus-url="http://secauo.com/Android安全/为Android编译带-e选项的netcat.html" class="disqus-comment-count"></div></footer></article><div class="comments"><div id="disqus_thread"><noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript></div></div></main><footer class="foot"><div class="foot-copy u-fl">&copy; 2015 Auo</div><menu class="page-menu u-fr"><li class="page-menu__item"><span title="Previous" class="page-menu__link icon-arrow-left page-menu__link--disabled"></span></li><li class="page-menu__item"><a title="Next" href="/Android安全/AmBinaryEditor（AndroidManifest二进制修改工具介绍）.html" class="page-menu__link icon-arrow-right"></a></li></menu></footer><script>(function(h,g,l,k,j,i){j=h.createElement(g),i=h.getElementsByTagName(g)[0],
+j.src="//"+l+".disqus.com/"+k+".js",i.parentNode.insertBefore(j,i)})
+(document,"script","secauo","embed");
+</script><script>var disqus_shortname = secauo; // required: replace example with your forum shortname
+/* * * Don't make any change for bellow lines * * */
+(function () {
+var s = document.createElement('script'); s.async = true;
+s.type = 'text/javascript';
+s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script></body></html>
